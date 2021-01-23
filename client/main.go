@@ -30,11 +30,11 @@ func main() {
 
 		fmt.Printf("%v ingresó al chat\n", name)
 		fmt.Println()
+
+		go esperandoMensaje(conn)
+
 		for {
 
-			go respuesta(conn)
-
-			fmt.Print("message: ")
 			message, err := reader.ReadString('\n')
 
 			if err != nil {
@@ -48,19 +48,23 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
+
 		}
 	}
 
 }
 
-func respuesta(conn net.Conn) {
-	reader := bufio.NewReader(conn)
+func esperandoMensaje(conn net.Conn) {
 
-	rpta, err := reader.ReadString('\n')
+	r := bufio.NewReader(conn)
 
-	if err != nil {
-		log.Fatal(err)
+	for {
+		mensajeRecivido, err := r.ReadString('\n')
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(mensajeRecivido)
 	}
-
-	fmt.Println(rpta)
 }

@@ -9,7 +9,17 @@ import (
 	"strings"
 )
 
+var conexiones []conexion
+
+type conexion struct {
+	id   int
+	conn net.Conn
+}
+
 func main() {
+
+	var id int
+
 	if len(os.Args) == 3 {
 
 		serverAddress := fmt.Sprintf("%s:%s", os.Args[1], os.Args[2])
@@ -25,34 +35,37 @@ func main() {
 		fmt.Println("Listening on: " + serverAddress)
 		fmt.Println()
 
-		c := make(chan []byte)
-
 		for {
 
 			fmt.Println("esperando una conexion...")
 			fmt.Println()
 
-			conn, err := listener.Accept()
+			c, err := listener.Accept()
 
 			if err != nil {
 				log.Fatal(err)
 			}
 
+			conn := conexion{id: id, conn: c}
+
+			conexiones = append(conexiones, conn)
+
 			fmt.Printf("Un usuario entro al chat\n")
 
-			go aux(conn, c)
+			go util(conn, id)
+
+			id++
 
 		}
+
 	}
 }
 
-func aux(conn net.Conn, c chan []byte) {
+func util(conn conexion, id int) {
 
-	reader := bufio.NewReader(conn)
+	reader := bufio.NewReader(conn.conn)
 
 	for {
-
-		go reciveMensaje(conn, c)
 
 		content, err := reader.ReadString('\n')
 
@@ -64,21 +77,17 @@ func aux(conn net.Conn, c chan []byte) {
 			}
 		}
 
-		c <- []byte(content)
+		for i := range conexiones {
+
+			if conexiones[i].id != conn.id {
+				_, err = conexiones[i].conn.Write([]byte(content))
+
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+		}
 
 		fmt.Println(string(content))
-	}
-}
-
-func reciveMensaje(conn net.Conn, c chan []byte) {
-
-	for {
-		mensaje := <-c
-
-		_, err := conn.Write(mensaje)
-
-		if err != nil {
-			log.Fatal(err)
-		}
 	}
 }

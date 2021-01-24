@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -63,14 +64,25 @@ func main() {
 
 func util(conn conexion, id int) {
 
+	defer conn.conn.Close()
 	reader := bufio.NewReader(conn.conn)
 
 	for {
 
 		content, err := reader.ReadString('\n')
-
 		if err != nil {
 			if strings.Contains(err.Error(), "host") {
+				break
+			} else if err == io.EOF {
+				for i := range conexiones {
+					if conexiones[i].id == conn.id {
+						if len(conexiones) >= i+1 {
+							conexiones = append(conexiones[:i], conexiones[i+1:]...)
+							break
+						}
+					}
+				}
+
 				break
 			} else {
 				log.Fatal(err)

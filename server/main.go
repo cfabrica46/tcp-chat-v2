@@ -69,6 +69,8 @@ func util(conn conexion, id int) {
 
 		content, err := reader.ReadString('\n')
 
+fmt.Print(err)
+
 		if err != nil {
 			if strings.Contains(err.Error(), "host") {
 				break

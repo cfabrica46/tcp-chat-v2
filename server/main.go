@@ -3,22 +3,16 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
 	"strings"
 )
 
-var conexiones []conexion
-
-type conexion struct {
-	id   int
-	conn net.Conn
-}
+var conexiones []net.Conn
 
 func main() {
-
-	var id int
 
 	if len(os.Args) == 3 {
 
@@ -46,43 +40,97 @@ func main() {
 				log.Fatal(err)
 			}
 
-			conn := conexion{id: id, conn: c}
+			conexiones = append(conexiones, c)
 
-			conexiones = append(conexiones, conn)
+			name := recivirNombre(c)
 
-			fmt.Printf("Un usuario entro al chat\n")
+			mensajeIngreso := fmt.Sprintf("%s a ingresado\n", name)
 
-			go util(conn, id)
+			for i := range conexiones {
 
-			id++
+				if conexiones[i] != c {
+					_, err = conexiones[i].Write([]byte(mensajeIngreso))
+
+					if err != nil {
+						log.Fatal(err)
+					}
+				} else {
+					_, err = conexiones[i].Write([]byte("Has ingresado\n"))
+
+					if err != nil {
+						log.Fatal(err)
+					}
+				}
+			}
+
+			go util(c, name)
 
 		}
 
 	}
 }
 
-func util(conn conexion, id int) {
+func util(conn net.Conn, name string) {
 
-	reader := bufio.NewReader(conn.conn)
+	defer conn.Close()
+	reader := bufio.NewReader(conn)
 
 	for {
 
 		content, err := reader.ReadString('\n')
 
-fmt.Print(err)
-
 		if err != nil {
-			if strings.Contains(err.Error(), "host") {
-				break
+
+			if err == io.EOF {
+
+				for i := range conexiones {
+					if conexiones[i] == conn {
+						if len(conexiones) >= i+1 {
+							conexiones = append(conexiones[:i], conexiones[i+1:]...)
+							break
+						}
+						if len(conexiones) == 1 {
+							conexiones = []net.Conn{}
+						}
+					}
+
+				}
+
+			} else if strings.Contains(err.Error(), "host") {
+
+				for i := range conexiones {
+					if conexiones[i] == conn {
+						if len(conexiones) >= i+1 {
+							conexiones = append(conexiones[:i], conexiones[i+1:]...)
+							break
+						}
+					}
+
+				}
+
 			} else {
+
 				log.Fatal(err)
+
 			}
+
+			for i := range conexiones {
+
+				desconectado := fmt.Sprintf("%s se a desconectado\n", name)
+
+				_, err = conexiones[i].Write([]byte(desconectado))
+				if err != nil {
+					log.Fatal(err)
+				}
+
+			}
+			break
 		}
 
 		for i := range conexiones {
 
-			if conexiones[i].id != conn.id {
-				_, err = conexiones[i].conn.Write([]byte(content))
+			if conexiones[i] != conn {
+				_, err = conexiones[i].Write([]byte(content))
 
 				if err != nil {
 					log.Fatal(err)
@@ -92,4 +140,19 @@ fmt.Print(err)
 
 		fmt.Println(string(content))
 	}
+}
+
+func recivirNombre(conn net.Conn) (name string) {
+
+	reader := bufio.NewReader(conn)
+
+	name, err := reader.ReadString('\n')
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	name = strings.Replace(name, "\n", "", -1)
+
+	return
 }

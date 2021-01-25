@@ -14,6 +14,8 @@ func main() {
 
 	if len(os.Args) == 3 {
 
+		reader := bufio.NewReader(os.Stdin)
+
 		fmt.Println("ingrese su nombre")
 
 		fmt.Scan(&name)
@@ -26,9 +28,8 @@ func main() {
 			log.Fatal(err)
 		}
 
-		reader := bufio.NewReader(os.Stdin)
+		conn.Write([]byte(name + "\n"))
 
-		fmt.Printf("%v ingresó al chat\n", name)
 		fmt.Println()
 
 		go esperandoMensaje(conn)

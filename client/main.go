@@ -6,13 +6,11 @@ import (
 	"log"
 	"net"
 	"os"
-	"sync"
 )
 
 func main() {
 
 	var name string
-	var m sync.Mutex
 
 	if len(os.Args) == 3 {
 
@@ -35,8 +33,8 @@ func main() {
 		go esperandoMensaje(conn)
 
 		for {
-			m.Lock()
-			go enviarMensaje(conn, name, &m)
+
+			enviarMensaje(conn, name)
 
 		}
 	}
@@ -59,16 +57,19 @@ func esperandoMensaje(conn net.Conn) {
 	}
 }
 
-func enviarMensaje(conn net.Conn, name string, m *sync.Mutex) {
+func enviarMensaje(conn net.Conn, name string) {
 
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Print("> ")
+
 	message, err := reader.ReadString('\n')
 
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println()
 
 	content := fmt.Sprintf("%s: %s", name, message)
 
@@ -78,5 +79,4 @@ func enviarMensaje(conn net.Conn, name string, m *sync.Mutex) {
 		log.Fatal(err)
 	}
 
-	m.Unlock()
 }

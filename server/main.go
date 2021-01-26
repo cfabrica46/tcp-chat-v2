@@ -38,41 +38,25 @@ func main() {
 				log.Fatal(err)
 			}
 
-			fmt.Println("alguien a igresado")
+			fmt.Println("alguien ha igresado")
 
 			conexiones = append(conexiones, c)
 
-			name := recibirNombre(c)
-
-			mensajeIngreso := fmt.Sprintf("%s a ingresado\n", name)
-
-			for i := range conexiones {
-
-				if conexiones[i] != c {
-					_, err = conexiones[i].Write([]byte(mensajeIngreso))
-
-					if err != nil {
-						log.Fatal(err)
-					}
-				} else {
-					_, err = conexiones[i].Write([]byte("Has ingresado\n"))
-
-					if err != nil {
-						log.Fatal(err)
-					}
-				}
-			}
-
-			go util(c, name)
+			go util(c)
 
 		}
 
 	}
 }
 
-func util(conn net.Conn, name string) {
+func util(conn net.Conn) {
 
 	defer conn.Close()
+
+	name := recibirNombre(conn)
+
+	dispacherMessage(conn, name)
+
 	reader := bufio.NewReader(conn)
 
 	for {
@@ -83,30 +67,11 @@ func util(conn net.Conn, name string) {
 
 			if err == io.EOF {
 
-				for i := range conexiones {
-					if conexiones[i] == conn {
-						if len(conexiones) >= i+1 {
-							conexiones = append(conexiones[:i], conexiones[i+1:]...)
-							break
-						}
-						if len(conexiones) == 1 {
-							conexiones = []net.Conn{}
-						}
-					}
-
-				}
+				eliminarConexion(conn)
 
 			} else if strings.Contains(err.Error(), "host") {
 
-				for i := range conexiones {
-					if conexiones[i] == conn {
-						if len(conexiones) >= i+1 {
-							conexiones = append(conexiones[:i], conexiones[i+1:]...)
-							break
-						}
-					}
-
-				}
+				eliminarConexion(conn)
 
 			} else {
 
@@ -114,35 +79,13 @@ func util(conn net.Conn, name string) {
 
 			}
 
-			for i := range conexiones {
+			enviarMensajeDesconexion(name)
 
-				desconectado := fmt.Sprintf("%s se a desconectado\n", name)
-
-				_, err = conexiones[i].Write([]byte(desconectado))
-				if err != nil {
-					log.Fatal(err)
-				}
-
-			}
 			break
 		}
 
-		for i := range conexiones {
+		enviarMensaje(conn, content)
 
-			if conexiones[i] != conn {
-				t := time.Now()
-
-				mensaje := fmt.Sprintf("%v:%v %v", t.Hour(), t.Minute(), content)
-
-				_, err = conexiones[i].Write([]byte(mensaje))
-
-				if err != nil {
-					log.Fatal(err)
-				}
-			}
-		}
-
-		fmt.Println(string(content))
 	}
 }
 
@@ -171,4 +114,76 @@ func recibirNombre(conn net.Conn) (name string) {
 	name = strings.Replace(name, "\n", "", -1)
 
 	return
+}
+
+func dispacherMessage(conn net.Conn, name string) {
+
+	mensajeIngreso := fmt.Sprintf("%s ha ingresado\n", name)
+
+	for i := range conexiones {
+
+		if conexiones[i] != conn {
+			_, err := conexiones[i].Write([]byte(mensajeIngreso))
+
+			if err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			_, err := conexiones[i].Write([]byte("Has ingresado\n"))
+
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+}
+
+func eliminarConexion(conn net.Conn) {
+
+	for i := range conexiones {
+		if conexiones[i] == conn {
+			if len(conexiones) >= i+1 {
+				conexiones = append(conexiones[:i], conexiones[i+1:]...)
+				break
+			}
+			if len(conexiones) == 1 {
+				conexiones = []net.Conn{}
+			}
+		}
+
+	}
+
+}
+
+func enviarMensajeDesconexion(name string) {
+
+	for i := range conexiones {
+		desconectado := fmt.Sprintf("%s se a desconectado\n", name)
+
+		_, err := conexiones[i].Write([]byte(desconectado))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	}
+
+}
+
+func enviarMensaje(conn net.Conn,content string) {
+
+	for i := range conexiones {
+
+		if conexiones[i] != conn {
+			t := time.Now()
+
+			mensaje := fmt.Sprintf("%v:%v %v", t.Hour(), t.Minute(), content)
+
+			_, err := conexiones[i].Write([]byte(mensaje))
+
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+
 }

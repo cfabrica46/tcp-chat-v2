@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 )
 
 var conexiones []net.Conn
@@ -31,18 +32,17 @@ func main() {
 
 		for {
 
-			fmt.Println("esperando una conexion...")
-			fmt.Println()
-
 			c, err := listener.Accept()
 
 			if err != nil {
 				log.Fatal(err)
 			}
 
+			fmt.Println("alguien a igresado")
+
 			conexiones = append(conexiones, c)
 
-			name := recivirNombre(c)
+			name := recibirNombre(c)
 
 			mensajeIngreso := fmt.Sprintf("%s a ingresado\n", name)
 
@@ -130,7 +130,11 @@ func util(conn net.Conn, name string) {
 		for i := range conexiones {
 
 			if conexiones[i] != conn {
-				_, err = conexiones[i].Write([]byte(content))
+				t := time.Now()
+
+				mensaje := fmt.Sprintf("%v:%v %v", t.Hour(), t.Minute(), content)
+
+				_, err = conexiones[i].Write([]byte(mensaje))
 
 				if err != nil {
 					log.Fatal(err)
@@ -142,16 +146,28 @@ func util(conn net.Conn, name string) {
 	}
 }
 
-func recivirNombre(conn net.Conn) (name string) {
+func recibirNombre(conn net.Conn) (name string) {
 
 	reader := bufio.NewReader(conn)
 
 	name, err := reader.ReadString('\n')
 
 	if err != nil {
-		log.Fatal(err)
-	}
 
+		if err == io.EOF {
+
+			fmt.Println("conexion fallida")
+
+		} else if strings.Contains(err.Error(), "host") {
+
+			fmt.Println("conexion fallida")
+
+		} else {
+
+			log.Fatal(err)
+
+		}
+	}
 	name = strings.Replace(name, "\n", "", -1)
 
 	return

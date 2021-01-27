@@ -15,10 +15,6 @@ func main() {
 
 	if len(os.Args) == 3 {
 
-		fmt.Println("ingrese su nombre")
-
-		fmt.Scan(&name)
-
 		serverAddress := fmt.Sprintf("%s:%s", os.Args[1], os.Args[2])
 
 		conn, err := net.Dial("tcp", serverAddress)
@@ -26,6 +22,14 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		err = reciveMessageName(conn)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Scan(&name)
 
 		conn.Write([]byte(name + "\n"))
 
@@ -45,15 +49,30 @@ func main() {
 
 }
 
-func esperandoMensaje(conn net.Conn) {
+func reciveMessageName(conn net.Conn) (err error) {
+
+	reader := bufio.NewReader(conn)
+
+	mensaje, err := reader.ReadString('\n')
+	if err != nil {
+		return
+	}
+
+	fmt.Println(mensaje)
+
+	return
+}
+
+func esperandoMensaje(conn net.Conn) (err error) {
 
 	r := bufio.NewReader(conn)
 
 	for {
+
 		mensajeRecivido, err := r.ReadString('\n')
 
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		mensajeRecivido = strings.Replace(mensajeRecivido, "\n", "", -1)

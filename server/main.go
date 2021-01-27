@@ -53,6 +53,12 @@ func util(conn net.Conn) {
 
 	defer conn.Close()
 
+	err := sendMessageName(conn)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	name, err := recibirNombre(conn)
 
 	if err != nil {
@@ -69,7 +75,7 @@ func util(conn net.Conn) {
 
 	for {
 
-		_, err = conn.Write([]byte(">\n"))
+		_, err = conn.Write([]byte("> \n"))
 
 		if err != nil {
 			log.Fatal(err)
@@ -110,7 +116,7 @@ func util(conn net.Conn) {
 
 		for i := range conexiones {
 			if conexiones[i] != conn {
-				conexiones[i].Write([]byte(">\n"))
+				conexiones[i].Write([]byte("> \n"))
 			}
 		}
 
@@ -216,4 +222,14 @@ func enviarMensaje(conn net.Conn, content, name string) (err error) {
 	}
 	return
 
+}
+
+func sendMessageName(conn net.Conn) (err error) {
+
+	_, err = conn.Write([]byte("Ingrese su nombre\n"))
+
+	if err != nil {
+		return
+	}
+	return
 }

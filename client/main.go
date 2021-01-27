@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -34,8 +35,11 @@ func main() {
 
 		for {
 
-			enviarMensaje(conn, name)
+			err = enviarMensaje(conn, name)
 
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 
@@ -52,31 +56,35 @@ func esperandoMensaje(conn net.Conn) {
 			log.Fatal(err)
 		}
 
-		fmt.Printf("\r%s\n", mensajeRecivido)
-		fmt.Print(">")
+		mensajeRecivido = strings.Replace(mensajeRecivido, "\n", "", -1)
+
+		fmt.Printf("\r%s", mensajeRecivido)
+
+		if strings.Contains(mensajeRecivido, ":") {
+			fmt.Println()
+			fmt.Println()
+
+		}
 	}
 }
 
-func enviarMensaje(conn net.Conn, name string) {
+func enviarMensaje(conn net.Conn, name string) (err error) {
 
 	reader := bufio.NewReader(os.Stdin)
-
-	fmt.Print("> ")
 
 	message, err := reader.ReadString('\n')
 
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 
 	fmt.Println()
 
-	content := fmt.Sprintf("%s: %s", name, message)
-
-	_, err = conn.Write([]byte(content))
+	_, err = conn.Write([]byte(message))
 
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 
+	return
 }
